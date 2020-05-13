@@ -42,11 +42,13 @@
  *
  * lonely            have-no-sibling
  *
- * $visited          used-by-sedfs(open-close-tag)-traverse
- *                   temp property, should be deleted after using
+ * exp               explict-relation,which is not undefined
+ * mandatory-exp     _id,_fstch,_rsib,
+ * imp               implicit-relation,which is undefined
+ *                   _lsib is implicit when node is not fstch
+ *                   _parent is implicit when node is not lstch
+ *                   _tree is implicit only-when node is uninited
  *
- * $ui               used-by-sedfs(open-close-tag)-term-show
- *                   temp property, should be deleted after using
  *                   
  *
  */
@@ -59,12 +61,11 @@ import * as idfunc from "./idfunc"
 interface Njson {
     _id:string,
     _fstch:null|string,
-    _lsib:null|string,
+    _lsib:null|undefined|string,
     _rsib:null|string,
-    _parent:null|string,
-    _depth:number,        
+    _parent:null|undefined|string,
     _tree:undefined|string,
-    $visited:any,
+    $visited:undefined|boolean,
     $ui:any,
 }
 
@@ -84,8 +85,8 @@ function creat_rj():Njson {
         _lsib:null,
         _rsib:null,
         _parent:null,
-        _depth:0,
         _tree:_id,
+        $visited:undefined
     }
     return(rj)
 }
@@ -99,11 +100,11 @@ function creat_nj():Njson {
     let nj:Njson = {
         _id:_id,
         _fstch:null,
-        _lsib:null,
+        _lsib:undefined,
         _rsib:null,
-        _parent:null,
-        _depth:0,
+        _parent:undefined,
         _tree:undefined,
+        $visited:undefined,
     }
     return(nj)
 }
@@ -137,14 +138,15 @@ function is_fstch(nj:Njson):boolean {
     return(cond)
 }
 
+
 function is_lstch(nj:Njson):boolean {
     //self._rsib is null
     let cond = (nj._rsib === null)
     return(cond)
 }
 
+
 function is_midch(nj:Njson):boolean {
-    //not_fstch and not lstch
     let cond0 = !is_fstch(nj)
     let cond1 = !is_lstch(nj)
     return(cond0 && cond1)
@@ -156,27 +158,20 @@ function is_leaf(nj:Njson):boolean {
     return(cond)
 }
 
+
 function is_connectable(nj:Njson):boolean {
-    /*
-     * root 节点,uninited 节点(不在任何树上的) 亦可
-     * 可以被直接 
-     * prepend as child,
-     * append  as child,
-     * insert  as child
-     * add     as lsib
-     * add     as rsib
-     * 操作
-     *
-     * 已经在某棵树上的节点,必须先disconn
-     * 然后才可进行上述操作
-     */
     return(is_root(nj) || !is_inited(nj))
 }
 
-function is_lonely(nj:Njson):boolean {
-    let cond0 =  (nj._lsib === null) 
-    let cond1 =  (nj._rsib === null)
-    return(cond0 && cond1)
+function is_lonely(njarr:Array<Njson>,nj:Njson):boolean {
+    let cond = is_root(nj)
+    if(cond) {
+        return(true)
+    } else {
+        let parent:any = get_parent(njarr,nj)
+        let children = get_children(njarr,parent)
+        return(children.length === 1)
+    }
 }
 
 //read tree
@@ -195,22 +190,12 @@ function get_sdfs_seq_via_id(sdfs:Array<Njson>,_id:string):number {
 
 //// child
 function get_fstch(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
-    /*
-     * fstch of leaf_nj will be null
-     * fstch of nonleaf_nj will not be null
-     */
     let chid = nj._fstch
     let fstch = (chid===null)?null:get_nj_via_id_from_njarr(njarr,chid)
     return(fstch)
 }
 
-
 function get_lstch(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
-    /*
-     * lstch of leaf_nj will be null
-     * lstch of nonleaf_nj will be Njson
-     *
-     */
     let child = get_fstch(njarr,nj)
     let prev = child
     while(child!==null){
@@ -220,13 +205,7 @@ function get_lstch(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
     return(prev)
 }
 
-
-
 function get_children(njarr:Array<Njson>,nj:Njson):Array<Njson> {
-    /*
-     * fstch->rsib->rsib.....->lstch 
-     *
-     */
     let children:Array<Njson> = []
     let child = get_fstch(njarr,nj)
     while(child!==null){
@@ -257,6 +236,7 @@ function get_which_child(njarr:Array<Njson>,nj:Njson,which:number):NJ_OR_NULL {
 }
 
 
+
 function get_some_children(njarr:Array<Njson>,nj:Njson,...whiches:Array<number>):Array<Njson> {
     let children = get_children(njarr,nj)
     let some:Array<Njson> = []
@@ -279,12 +259,16 @@ function get_some_children(njarr:Array<Njson>,nj:Njson,...whiches:Array<number>)
 
 ////parent
 function get_parent(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
-    let pid = nj._parent
-    if(pid === null) {
-        return(null)
+    /*@level-3@*/
+    let parent:NJ_OR_NULL;
+    if(is_root(nj)) {
+        parent = null
     } else {
-        return(get_nj_via_id_from_njarr(njarr,pid))
+        let lstrsib:any = get_lstsib(njarr,nj,true)
+        let pid:any = lstrsib._parent
+        parent = (pid===null)?null:get_nj_via_id_from_njarr(njarr,pid)
     }
+    return(parent)
 }
 
 
@@ -357,9 +341,13 @@ function get_rsib(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
 }
 
 function get_lsib(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
-    let sibid = nj._lsib
-    let lsib = (sibid===null)?null:get_nj_via_id_from_njarr(njarr,sibid)
-    return(lsib)
+    let sibs = get_sibs(njarr,nj,true)
+    let seq = cmmn.dtb_get_seq_via_id(sibs,nj._id)
+    if(seq === 0) {
+        return(null)
+    } else {
+        return(sibs[seq-1])
+    }
 }
 
 
@@ -382,26 +370,6 @@ function get_lstsib(njarr:Array<Njson>,nj:Njson,including_self:boolean=false):NJ
     }
 }
 
-function get_fstsib(njarr:Array<Njson>,nj:Njson,including_self:boolean=false):NJ_OR_NULL {
-    /*@level-2@*/
-    let lstlsib = nj
-    let lsib = get_lsib(njarr,nj)
-    while(lsib!==null) {
-        lstlsib = lsib
-        lsib = get_lsib(njarr,lsib)
-    }
-    if(including_self){
-        return(lstlsib)
-    } else {
-        if(lstlsib._id !== nj._id) {
-            return(lstlsib)
-        } else {
-            return(null)
-        }
-    }
-}
-
-
 function get_sibs(njarr:Array<Njson>,nj:Njson,including_self:boolean=false):Array<Njson> {
     let parent = get_parent(njarr,nj)
     let sibs;
@@ -420,35 +388,55 @@ function get_sibs(njarr:Array<Njson>,nj:Njson,including_self:boolean=false):Arra
 
 
 
-function get_psibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
+
+function get_preceding_sibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
+    let sibs = get_sibs(njarr,nj,true)
+    let seq = cmmn.dtb_get_seq_via_id(sibs,nj._id)
     let psibs:Array<Njson> = []
-    let psib = nj
     if(sibs.length ===0) {
 
     } else {
-        while(psib._lsib !== null) {
-            psibs.push(psib)
-            psib = get_nj_via_id_from_njarr(njarr,psib._lsib)
+        for(let i=0;i<sibs.length;i++) {
+            let cond = i<seq
+            if(cond) {
+                psibs.push(sibs[i])
+            }
         }
     }
     return(psibs)
 }
 
 
-function get_fsibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
+function get_following_sibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
+    let sibs = get_sibs(njarr,nj,true)
+    let seq = cmmn.dtb_get_seq_via_id(sibs,nj._id)
     let fsibs:Array<Njson> = []
-    let fsib = nj
     if(sibs.length ===0) {
 
     } else {
-        while(fsib._rsib !== null) {
-            fsibs.push(fsib)
-            fsib = get_nj_via_id_from_njarr(njarr,fsib._rsib)
+        for(let i=0;i<sibs.length;i++) {
+            let cond = i>seq
+            if(cond) {
+                fsibs.push(sibs[i])
+            }
         }
     }
     return(fsibs)
 }
 
+
+function get_fstsib(njarr:Array<Njson>,nj:Njson,including_self:boolean=false):NJ_OR_NULL {
+    let sibs:Array<Njson> = get_sibs(njarr,nj,true)
+    if(including_self) {
+        return(sibs[0])
+    } else {
+        if(sibs[0]._id === nj._id) {
+            return(null)
+        } else {
+            return(sibs[0])
+        }
+    }
+}
 
 function get_which_sib(njarr:Array<Njson>,nj:Njson,which:number):NJ_OR_NULL {
     let sibs = get_sibs(njarr,nj,true)
@@ -487,11 +475,6 @@ function get_sibseq(njarr:Array<Njson>,nj:Njson):number {
     let seq = cmmn.dtb_get_seq_via_id(njarr,nj._id)
     return(seq)
 }
-
-
-//////////////////////////////////////
-/////////////////////////////////////
-
 
 function get_rsib_of_fst_ance_having_rsib(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
     /*
@@ -1142,8 +1125,8 @@ export {
     get_lstsib,
     get_lsib,
     get_sibs,
-    get_psibs,
-    get_fsibs,
+    get_preceding_sibs,
+    get_following_sibs,
     get_fstsib,
     get_sibseq,
     get_which_sib,
