@@ -31,7 +31,7 @@ function conns2repr(
     return(conns.join(''))
 }
 
-function clear_ui(njarr:<Njson>):Array<Njson> {
+function clear_ui(njarr:Array<Njson>):Array<Njson> {
     njarr.forEach(
         nj=>{
             delete nj.$ui

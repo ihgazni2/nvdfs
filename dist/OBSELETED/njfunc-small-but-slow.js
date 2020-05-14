@@ -43,11 +43,13 @@
  *
  * lonely            have-no-sibling
  *
- * $visited          used-by-sedfs(open-close-tag)-traverse
- *                   temp property, should be deleted after using
+ * exp               explict-relation,which is not undefined
+ * mandatory-exp     _id,_fstch,_rsib,
+ * imp               implicit-relation,which is undefined
+ *                   _lsib is implicit when node is not fstch
+ *                   _parent is implicit when node is not lstch
+ *                   _tree is implicit only-when node is uninited
  *
- * $ui               used-by-sedfs(open-close-tag)-term-show
- *                   temp property, should be deleted after using
  *
  *
  */
@@ -72,8 +74,8 @@ function creat_rj() {
         _lsib: null,
         _rsib: null,
         _parent: null,
-        _depth: 0,
         _tree: _id,
+        $visited: undefined
     };
     return (rj);
 }
@@ -86,11 +88,11 @@ function creat_nj() {
     var nj = {
         _id: _id,
         _fstch: null,
-        _lsib: null,
+        _lsib: undefined,
         _rsib: null,
-        _parent: null,
-        _depth: 0,
+        _parent: undefined,
         _tree: undefined,
+        $visited: undefined,
     };
     return (nj);
 }
@@ -128,7 +130,6 @@ function is_lstch(nj) {
 }
 exports.is_lstch = is_lstch;
 function is_midch(nj) {
-    //not_fstch and not lstch
     var cond0 = !is_fstch(nj);
     var cond1 = !is_lstch(nj);
     return (cond0 && cond1);
@@ -141,26 +142,19 @@ function is_leaf(nj) {
 }
 exports.is_leaf = is_leaf;
 function is_connectable(nj) {
-    /*
-     * root 节点,uninited 节点(不在任何树上的) 亦可
-     * 可以被直接
-     * prepend as child,
-     * append  as child,
-     * insert  as child
-     * add     as lsib
-     * add     as rsib
-     * 操作
-     *
-     * 已经在某棵树上的节点,必须先disconn
-     * 然后才可进行上述操作
-     */
     return (is_root(nj) || !is_inited(nj));
 }
 exports.is_connectable = is_connectable;
-function is_lonely(nj) {
-    var cond0 = (nj._lsib === null);
-    var cond1 = (nj._rsib === null);
-    return (cond0 && cond1);
+function is_lonely(njarr, nj) {
+    var cond = is_root(nj);
+    if (cond) {
+        return (true);
+    }
+    else {
+        var parent_1 = get_parent(njarr, nj);
+        var children = get_children(njarr, parent_1);
+        return (children.length === 1);
+    }
 }
 exports.is_lonely = is_lonely;
 //read tree
@@ -177,21 +171,12 @@ function get_sdfs_seq_via_id(sdfs, _id) {
 exports.get_sdfs_seq_via_id = get_sdfs_seq_via_id;
 //// child
 function get_fstch(njarr, nj) {
-    /*
-     * fstch of leaf_nj will be null
-     * fstch of nonleaf_nj will not be null
-     */
     var chid = nj._fstch;
     var fstch = (chid === null) ? null : get_nj_via_id_from_njarr(njarr, chid);
     return (fstch);
 }
 exports.get_fstch = get_fstch;
 function get_lstch(njarr, nj) {
-    /*
-     * lstch of leaf_nj will be null
-     * lstch of nonleaf_nj will be Njson
-     *
-     */
     var child = get_fstch(njarr, nj);
     var prev = child;
     while (child !== null) {
@@ -202,10 +187,6 @@ function get_lstch(njarr, nj) {
 }
 exports.get_lstch = get_lstch;
 function get_children(njarr, nj) {
-    /*
-     * fstch->rsib->rsib.....->lstch
-     *
-     */
     var children = [];
     var child = get_fstch(njarr, nj);
     while (child !== null) {
@@ -261,13 +242,17 @@ function get_some_children(njarr, nj) {
 exports.get_some_children = get_some_children;
 ////parent
 function get_parent(njarr, nj) {
-    var pid = nj._parent;
-    if (pid === null) {
-        return (null);
+    /*@level-3@*/
+    var parent;
+    if (is_root(nj)) {
+        parent = null;
     }
     else {
-        return (get_nj_via_id_from_njarr(njarr, pid));
+        var lstrsib = get_lstsib(njarr, nj, true);
+        var pid = lstrsib._parent;
+        parent = (pid === null) ? null : get_nj_via_id_from_njarr(njarr, pid);
     }
+    return (parent);
 }
 exports.get_parent = get_parent;
 function get_root(njarr) {
@@ -343,9 +328,14 @@ function get_rsib(njarr, nj) {
 }
 exports.get_rsib = get_rsib;
 function get_lsib(njarr, nj) {
-    var sibid = nj._lsib;
-    var lsib = (sibid === null) ? null : get_nj_via_id_from_njarr(njarr, sibid);
-    return (lsib);
+    var sibs = get_sibs(njarr, nj, true);
+    var seq = cmmn.dtb_get_seq_via_id(sibs, nj._id);
+    if (seq === 0) {
+        return (null);
+    }
+    else {
+        return (sibs[seq - 1]);
+    }
 }
 exports.get_lsib = get_lsib;
 function get_lstsib(njarr, nj, including_self) {
@@ -370,28 +360,6 @@ function get_lstsib(njarr, nj, including_self) {
     }
 }
 exports.get_lstsib = get_lstsib;
-function get_fstsib(njarr, nj, including_self) {
-    if (including_self === void 0) { including_self = false; }
-    /*@level-2@*/
-    var lstlsib = nj;
-    var lsib = get_lsib(njarr, nj);
-    while (lsib !== null) {
-        lstlsib = lsib;
-        lsib = get_lsib(njarr, lsib);
-    }
-    if (including_self) {
-        return (lstlsib);
-    }
-    else {
-        if (lstlsib._id !== nj._id) {
-            return (lstlsib);
-        }
-        else {
-            return (null);
-        }
-    }
-}
-exports.get_fstsib = get_fstsib;
 function get_sibs(njarr, nj, including_self) {
     if (including_self === void 0) { including_self = false; }
     var parent = get_parent(njarr, nj);
@@ -411,26 +379,56 @@ function get_sibs(njarr, nj, including_self) {
     return (sibs);
 }
 exports.get_sibs = get_sibs;
-function get_psibs(njarr, nj) {
+function get_preceding_sibs(njarr, nj) {
+    var sibs = get_sibs(njarr, nj, true);
+    var seq = cmmn.dtb_get_seq_via_id(sibs, nj._id);
     var psibs = [];
-    var psib = nj;
-    while (psib._lsib !== null) {
-        psibs.push(psib);
-        psib = get_nj_via_id_from_njarr(njarr, psib._lsib);
+    if (sibs.length === 0) {
+    }
+    else {
+        for (var i = 0; i < sibs.length; i++) {
+            var cond = i < seq;
+            if (cond) {
+                psibs.push(sibs[i]);
+            }
+        }
     }
     return (psibs);
 }
-exports.get_psibs = get_psibs;
-function get_fsibs(njarr, nj) {
+exports.get_preceding_sibs = get_preceding_sibs;
+function get_following_sibs(njarr, nj) {
+    var sibs = get_sibs(njarr, nj, true);
+    var seq = cmmn.dtb_get_seq_via_id(sibs, nj._id);
     var fsibs = [];
-    var fsib = nj;
-    while (fsib._rsib !== null) {
-        fsibs.push(fsib);
-        fsib = get_nj_via_id_from_njarr(njarr, fsib._rsib);
+    if (sibs.length === 0) {
+    }
+    else {
+        for (var i = 0; i < sibs.length; i++) {
+            var cond = i > seq;
+            if (cond) {
+                fsibs.push(sibs[i]);
+            }
+        }
     }
     return (fsibs);
 }
-exports.get_fsibs = get_fsibs;
+exports.get_following_sibs = get_following_sibs;
+function get_fstsib(njarr, nj, including_self) {
+    if (including_self === void 0) { including_self = false; }
+    var sibs = get_sibs(njarr, nj, true);
+    if (including_self) {
+        return (sibs[0]);
+    }
+    else {
+        if (sibs[0]._id === nj._id) {
+            return (null);
+        }
+        else {
+            return (sibs[0]);
+        }
+    }
+}
+exports.get_fstsib = get_fstsib;
 function get_which_sib(njarr, nj, which) {
     var sibs = get_sibs(njarr, nj, true);
     var lngth = sibs.length;
@@ -587,18 +585,8 @@ function get_depth(njarr, nj) {
     return (ances.length);
 }
 exports.get_depth = get_depth;
-function get_breadth(njarr, nj, is_already_sdfs) {
-    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
-    /*
-     */
-    var sdfs;
-    if (is_already_sdfs) {
-        sdfs = njarr;
-    }
-    else {
-        sdfs = njarr2sdfs(njarr);
-    }
-    var lyr = get_lyr(sdfs, nj, is_already_sdfs);
+function get_breadth(sdfs, nj) {
+    var lyr = get_lyr(sdfs, nj);
     var breadth = cmmn.dtb_get_seq_via_id(lyr, nj._id);
     return (breadth);
 }
@@ -615,47 +603,39 @@ function get_height(njarr, nj) {
 }
 exports.get_height = get_height;
 ////lyr
-function get_lyr(njarr, nj, is_already_sdfs) {
-    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
-    var sdfs;
-    if (is_already_sdfs) {
-        sdfs = njarr;
-    }
-    else {
-        sdfs = njarr2sdfs(njarr);
-    }
+function get_lyr(sdfs, nj) {
     var depth = get_depth(sdfs, nj);
     var lyr = sdfs.filter(function (r) { return (get_depth(sdfs, r) === depth); });
     return (lyr);
 }
 exports.get_lyr = get_lyr;
-function get_fstlyr_des_depth(njarr, nj) {
+function get_fstlyr_des_depth(sdfs, nj) {
     var cond = is_leaf(nj);
     if (cond) {
         return (null);
     }
     else {
-        var depth = get_depth(njarr, nj);
+        var depth = get_depth(sdfs, nj);
         return (depth + 1);
     }
 }
 exports.get_fstlyr_des_depth = get_fstlyr_des_depth;
-function get_lstlyr_des_depth(njarr, nj) {
+function get_lstlyr_des_depth(sdfs, nj) {
     var cond = is_leaf(nj);
     if (cond) {
         return (null);
     }
     else {
-        var depth = get_depth(njarr, nj);
-        var des_depths = njarr.map(function (r) { return get_depth(njarr, r); });
+        var depth = get_depth(sdfs, nj);
+        var des_depths = sdfs.map(function (r) { return get_depth(sdfs, r); });
         var max = Math.max.apply(Math, des_depths);
         return (max);
     }
 }
 exports.get_lstlyr_des_depth = get_lstlyr_des_depth;
-function get_which_lyr_des_depth(njarr, nj, which) {
-    var depth = get_depth(njarr, nj);
-    var height = get_height(njarr, nj);
+function get_which_lyr_des_depth(sdfs, nj, which) {
+    var depth = get_depth(sdfs, nj);
+    var height = get_height(sdfs, nj);
     if (height <= which) {
         return (null);
     }
@@ -712,8 +692,8 @@ function get_sdfs_prev(njarr, nj) {
             return (lsib);
         }
         else {
-            var parent_1 = get_parent(njarr, nj);
-            return (parent_1);
+            var parent_2 = get_parent(njarr, nj);
+            return (parent_2);
         }
     }
     else {
@@ -728,8 +708,8 @@ function get_sdfs_prev(njarr, nj) {
             }
         }
         else {
-            var parent_2 = get_parent(njarr, nj);
-            return (parent_2);
+            var parent_3 = get_parent(njarr, nj);
+            return (parent_3);
         }
     }
 }
@@ -902,8 +882,6 @@ function prepend_child(sdfs, nj, child) {
             njid:nj._id,
             child:child
         }
-
-        must already be sdfs
     */
     child = (child === undefined) ? creat_nj() : child;
     var cond = is_connectable(child);
@@ -912,22 +890,21 @@ function prepend_child(sdfs, nj, child) {
         child._tree = nj._tree;
         //child is fstch
         child._lsib = null;
-        //update parent
-        child._parent = nj._id;
-        //update depth
-        child._depth = nj._depth + 1;
-        //
         if (is_leaf(nj)) {
             //if parent is leaf, child will be the only-child,so child is also lstch
             child._rsib = null;
+            //lstch have explicit _parent
+            child._parent = nj._id;
         }
         else {
             //get old_fstch
             var old_fstch = get_nj_via_id_from_njarr(sdfs, nj._fstch);
-            //update old_fstch._lsib to child._id
-            old_fstch._lsib = child._id;
+            //old_fstch will  not be fstch, set old_fstch._lsib to implicit
+            old_fstch._lsib = undefined;
             //update child._rsib to old_fstch._id
             child._rsib = old_fstch._id;
+            //child will not be lstch, set child._parent to implicit
+            child._parent = undefined;
         }
         //update nj._fstch
         nj._fstch = child._id;
@@ -952,23 +929,13 @@ function append_child(sdfs, nj, child) {
             njid:nj._id,
             child:child
         }
-
-        must already be sdfs
     */
     child = (child === undefined) ? creat_nj() : child;
     var cond = is_connectable(child);
     if (cond) {
-        //update _tree
         child._tree = nj._tree;
-        //update _rsib
         child._rsib = null;
-        //update _parent
-        child._parent = nj._id;
-        //update depth
-        child._depth = nj._depth + 1;
-        //
         var old_lstch = void 0;
-        //
         if (is_leaf(nj)) {
             //child 也是lstch
             nj._fstch = child._id;
@@ -981,14 +948,21 @@ function append_child(sdfs, nj, child) {
         }
         else {
             old_lstch = get_lstch(sdfs, nj);
+            //old_lstch will not be lstch any more. set old_lstch._parent to implicit
+            old_lstch._parent = undefined;
+            //update old_lstch._rsib to child
             old_lstch._rsib = child._id;
-            child._lsib = old_lstch._id;
+            //child will not be fstch , set child._lsib to implicit
+            child._lsib = undefined;
             //
             var old_lstch_drmost = get_drmost_des(sdfs, old_lstch);
             var seq = get_sdfs_seq_via_id(sdfs, old_lstch_drmost._id);
             var chseq = seq + 1;
             sdfs.splice(chseq, 0, child);
         }
+        //child is lstch,update parent 
+        child._parent = nj._id;
+        //
     }
     else {
         console.log('only root or uninited could be appended');
@@ -996,7 +970,7 @@ function append_child(sdfs, nj, child) {
     return (child);
 }
 exports.append_child = append_child;
-function insert_child_via_index(sdfs, nj, which, child) {
+function insert_child(sdfs, nj, which, child) {
     /*
         signal = {
             action:insert_child,
@@ -1039,17 +1013,7 @@ function insert_child_via_index(sdfs, nj, which, child) {
     }
     return (child);
 }
-exports.insert_child_via_index = insert_child_via_index;
-function insert_child_before(sdfs, nj, child) {
-    var which = get_sdfs_seq_via_id(sdfs, nj._id);
-    return (insert_child_via_index(sdfs, nj, which, child));
-}
-exports.insert_child_before = insert_child_before;
-function insert_child_after(sdfs, nj, child) {
-    var which = get_sdfs_seq_via_id(sdfs, nj._id) + 1;
-    return (insert_child_via_index(sdfs, nj, which, child));
-}
-exports.insert_child_after = insert_child_after;
+exports.insert_child = insert_child;
 function add_lsib(sdfs, nj, lsib) {
     /*
         signal = {
@@ -1070,21 +1034,21 @@ function add_lsib(sdfs, nj, lsib) {
             //
             var cond_3 = is_fstch(nj);
             lsib._tree = nj._tree;
-            var parent_3 = get_parent(sdfs, nj);
-            lsib._parent = parent_3._id;
-            lsib._depth = parent_3._depth + 1;
             if (cond_3) {
+                var parent_4 = get_parent(sdfs, nj);
+                nj._lsib = undefined;
                 lsib._lsib = null;
-                parent_3._fstch = lsib._id;
+                parent_4._fstch = lsib._id;
             }
             else {
                 var old_lsib = get_lsib(sdfs, nj);
                 old_lsib._rsib = lsib._id;
-                lsib._lsib = old_lsib._id;
+                //
+                lsib._lsib = undefined;
             }
-            //
             lsib._rsib = nj._id;
-            nj._lsib = lsib._id;
+            //lsib 一定不是lstch
+            lsib._parent = undefined;
             //插入sdfs,lsib在当前nj位置,当前nj后移
             var _id = nj._id;
             var seq = get_sdfs_seq_via_id(sdfs, _id);
@@ -1117,20 +1081,18 @@ function add_rsib(sdfs, nj, rsib) {
             //
             var cond_4 = is_lstch(nj);
             rsib._tree = nj._tree;
-            var parent_4 = get_parent(sdfs, nj);
-            rsib._parent = parent_4._id;
-            rsib._depth = parent_4._depth + 1;
             if (cond_4) {
+                rsib._parent = nj._parent;
+                nj._parent = undefined;
                 rsib._rsib = null;
             }
             else {
-                var old_rsib = get_rsib(sdfs, nj);
-                rsib._rsib = old_rsib._id;
-                old_rsib._lsib = rsib._id;
+                rsib._rsib = nj._rsib;
+                rsib._parent = undefined;
             }
-            //
             nj._rsib = rsib._id;
-            rsib._lsib = nj._id;
+            //rsib 一定不是fstch
+            rsib._lsib = undefined;
             //插入sdfs,lsib在当前nj位置+1,当前nj不动
             var _id = nj._id;
             var seq = get_sdfs_seq_via_id(sdfs, _id);

@@ -64,8 +64,8 @@ interface Njson {
     _parent:null|string,
     _depth:number,        
     _tree:undefined|string,
-    $visited:any,
-    $ui:any,
+    $visited?:any,
+    $ui?:any,
 }
 
 type NJ_OR_NULL = Njson | null
@@ -419,17 +419,12 @@ function get_sibs(njarr:Array<Njson>,nj:Njson,including_self:boolean=false):Arra
 }
 
 
-
 function get_psibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
     let psibs:Array<Njson> = []
     let psib = nj
-    if(sibs.length ===0) {
-
-    } else {
-        while(psib._lsib !== null) {
-            psibs.push(psib)
-            psib = get_nj_via_id_from_njarr(njarr,psib._lsib)
-        }
+    while(psib._lsib !== null) {
+        psibs.push(psib)
+        psib = get_nj_via_id_from_njarr(njarr,psib._lsib)
     }
     return(psibs)
 }
@@ -438,13 +433,9 @@ function get_psibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
 function get_fsibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
     let fsibs:Array<Njson> = []
     let fsib = nj
-    if(sibs.length ===0) {
-
-    } else {
-        while(fsib._rsib !== null) {
-            fsibs.push(fsib)
-            fsib = get_nj_via_id_from_njarr(njarr,fsib._rsib)
-        }
+    while(fsib._rsib !== null) {
+        fsibs.push(fsib)
+        fsib = get_nj_via_id_from_njarr(njarr,fsib._rsib)
     }
     return(fsibs)
 }
@@ -1154,6 +1145,11 @@ function njarr2sdfs(njarr:Array<Njson>):Array<Njson> {
 
 
 export {
+    Njson,
+    NJ_OR_NULL,
+    NJ_OR_UNDEFINED,
+    BL_OR_UNDEFINED,
+    //
     creat_rj,
     creat_nj,
     creat_sdfs,
@@ -1236,3 +1232,4 @@ export {
     //
     njarr2sdfs,
 }
+
