@@ -489,10 +489,6 @@ function get_sibseq(njarr:Array<Njson>,nj:Njson):number {
 }
 
 
-//////////////////////////////////////
-/////////////////////////////////////
-
-
 function get_rsib_of_fst_ance_having_rsib(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
     /*
         along the parent chain until root,not_including_self
@@ -585,6 +581,7 @@ function get_lstlyr_deses(njarr:Array<Njson>,nj:Njson):Array<Njson> {
     return(deses)
 }
 
+
 function get_which_lyr_deses(njarr:Array<Njson>,nj:Njson,which:number):Array<Njson> {
     let depth = get_depth(njarr,nj)
     let deses = get_deses(njarr,nj,false)
@@ -606,8 +603,16 @@ function get_depth(njarr:Array<Njson>,nj:Njson):number {
     return(ances.length)
 }
 
-function get_breadth(sdfs:Array<Njson>,nj:Njson):number {
-    let lyr = get_lyr(sdfs,nj)
+function get_breadth(njarr:Array<Njson>,nj:Njson,is_already_sdfs:boolean=true):number {
+    /*
+     */
+    let sdfs:Array<Njson>;
+    if(is_already_sdfs) {
+        sdfs = njarr    
+    } else {
+        sdfs = njarr2sdfs(njarr) 
+    }
+    let lyr = get_lyr(sdfs,nj,is_already_sdfs)
     let breadth = cmmn.dtb_get_seq_via_id(lyr,nj._id)
     return(breadth)
 }
@@ -624,39 +629,47 @@ function get_height(njarr:Array<Njson>,nj:Njson):number {
 }
 
 
-
 ////lyr
-function get_lyr(sdfs:Array<Njson>,nj:Njson):Array<Njson> {
+function get_lyr(njarr:Array<Njson>,nj:Njson,is_already_sdfs:boolean=true):Array<Njson> {
+    let sdfs:Array<Njson>;
+    if(is_already_sdfs) {
+        sdfs = njarr
+    } else {
+        sdfs = njarr2sdfs(njarr)
+    }
     let depth = get_depth(sdfs,nj)
     let lyr = sdfs.filter(r=>(get_depth(sdfs,r) === depth))
     return(lyr)
 }
 
-function get_fstlyr_des_depth(sdfs:Array<Njson>,nj:Njson):number|null {
+
+
+function get_fstlyr_des_depth(njarr:Array<Njson>,nj:Njson):number|null {
     let cond = is_leaf(nj)
     if(cond) {
         return(null)
     } else {
-        let depth = get_depth(sdfs,nj)
+        let depth = get_depth(njarr,nj)
         return(depth+1)
     }
 }
 
-function get_lstlyr_des_depth(sdfs:Array<Njson>,nj:Njson):number|null {
+function get_lstlyr_des_depth(njarr:Array<Njson>,nj:Njson):number|null {
     let cond = is_leaf(nj)
     if(cond) {
         return(null)
     } else {
-        let depth = get_depth(sdfs,nj)
-        let des_depths = sdfs.map(r=>get_depth(sdfs,r))
+        let depth = get_depth(njarr,nj)
+        let des_depths = njarr.map(r=>get_depth(njarr,r))
         let max = Math.max(...des_depths)
         return(max)
     }
 }
 
-function get_which_lyr_des_depth(sdfs:Array<Njson>,nj:Njson,which:number):number|null {
-    let depth = get_depth(sdfs,nj)
-    let height = get_height(sdfs,nj)
+
+function get_which_lyr_des_depth(njarr:Array<Njson>,nj:Njson,which:number):number|null {
+    let depth = get_depth(njarr,nj)
+    let height = get_height(njarr,nj)
     if(height<=which){
         return(null)
     } else {
@@ -858,10 +871,13 @@ function get_sedfs_prev(njarr:Array<Njson>,nj:Njson,visited:BL_OR_UNDEFINED):NJ_
     }
 }
 
+
 function is_sedfs_traverse_finished(nj:Njson,start_id:string):boolean {
     let cond = (nj.$visited) && (start_id === nj._id)
     return(<boolean>cond)
 }
+
+
 
 function get_sedfs(
     njarr:Array<Njson>,
@@ -894,6 +910,8 @@ function prepend_child(sdfs:Array<Njson>,nj:Njson,child?:any):Njson {
             njid:nj._id,
             child:child
         }
+
+        must already be sdfs
     */
     child = (child === undefined)?creat_nj():child;
     let cond = is_connectable(child);
@@ -902,20 +920,21 @@ function prepend_child(sdfs:Array<Njson>,nj:Njson,child?:any):Njson {
         child._tree = nj._tree
         //child is fstch
         child._lsib = null
+        //update parent
+        child._parent = nj._id
+        //update depth
+        child._depth = nj._depth + 1 
+        //
         if(is_leaf(nj)) {
             //if parent is leaf, child will be the only-child,so child is also lstch
             child._rsib = null
-            //lstch have explicit _parent
-            child._parent = nj._id
         } else {
             //get old_fstch
             let old_fstch = get_nj_via_id_from_njarr(sdfs,(nj._fstch as any))
-            //old_fstch will  not be fstch, set old_fstch._lsib to implicit
-            old_fstch._lsib = undefined
+            //update old_fstch._lsib to child._id
+            old_fstch._lsib = child._id 
             //update child._rsib to old_fstch._id
             child._rsib = old_fstch._id
-            //child will not be lstch, set child._parent to implicit
-            child._parent = undefined
         }
         //update nj._fstch
         nj._fstch = child._id
@@ -940,13 +959,23 @@ function append_child(sdfs:Array<Njson>,nj:Njson,child?:any):Njson {
             njid:nj._id,
             child:child
         }
+
+        must already be sdfs
     */
     child = (child === undefined)?creat_nj():child;
     let cond = is_connectable(child);
     if(cond) {
+        //update _tree
         child._tree = nj._tree
+        //update _rsib
         child._rsib = null
+        //update _parent
+        child._parent = nj._id
+        //update depth
+        child._depth = nj._depth + 1
+        //
         let old_lstch:any;
+        //
         if(is_leaf(nj)){
             //child 也是lstch
             nj._fstch = child._id
@@ -958,28 +987,22 @@ function append_child(sdfs:Array<Njson>,nj:Njson,child?:any):Njson {
             sdfs.splice(chseq,0,child)
         } else {
             old_lstch = get_lstch(sdfs,nj)
-            //old_lstch will not be lstch any more. set old_lstch._parent to implicit
-            old_lstch._parent = undefined
-            //update old_lstch._rsib to child
             old_lstch._rsib = child._id
-            //child will not be fstch , set child._lsib to implicit
-            child._lsib = undefined
+            child._lsib = old_lstch._id 
             //
             let old_lstch_drmost:any = get_drmost_des(sdfs,old_lstch)
             let seq = get_sdfs_seq_via_id(sdfs,old_lstch_drmost._id)
             let chseq = seq + 1
             sdfs.splice(chseq,0,child)
         }
-        //child is lstch,update parent 
-        child._parent = nj._id
-        //
     } else {
         console.log('only root or uninited could be appended');
     }
     return(child)
 }
 
-function insert_child(sdfs:Array<Njson>,nj:Njson,which:number,child?:NJ_OR_UNDEFINED):Njson {
+
+function insert_child_via_index(sdfs:Array<Njson>,nj:Njson,which:number,child?:NJ_OR_UNDEFINED):Njson {
     /*
         signal = {
             action:insert_child,
@@ -1018,6 +1041,17 @@ function insert_child(sdfs:Array<Njson>,nj:Njson,which:number,child?:NJ_OR_UNDEF
     return(child)
 }
 
+function insert_child_before(sdfs:Array<Njson>,nj:Njson,child?:NJ_OR_UNDEFINED):Njson {
+    let which =  get_sdfs_seq_via_id(sdfs,nj._id)
+    return(insert_child_via_index(sdfs,nj,which,child))
+}
+
+function insert_child_after(sdfs:Array<Njson>,nj:Njson,child?:NJ_OR_UNDEFINED):Njson {
+    let which =  get_sdfs_seq_via_id(sdfs,nj._id) + 1
+    return(insert_child_via_index(sdfs,nj,which,child))
+}
+
+
 function add_lsib(sdfs:Array<Njson>,nj:Njson,lsib?:NJ_OR_UNDEFINED):Njson {
     /*
         signal = {
@@ -1037,20 +1071,20 @@ function add_lsib(sdfs:Array<Njson>,nj:Njson,lsib?:NJ_OR_UNDEFINED):Njson {
             //
             let cond = is_fstch(nj)
             lsib._tree = nj._tree
+            let parent = <Njson>get_parent(sdfs,nj)
+            lsib._parent = parent._id
+            lsib._depth = parent._depth + 1
             if(cond) {
-                let parent = <Njson>get_parent(sdfs,nj)
-                nj._lsib = undefined
                 lsib._lsib = null
                 parent._fstch = lsib._id
             } else {
                 let old_lsib = <Njson>get_lsib(sdfs,nj)
                 old_lsib._rsib = lsib._id
-                //
-                lsib._lsib = undefined
+                lsib._lsib = old_lsib._id
             }
+            //
             lsib._rsib = nj._id
-            //lsib 一定不是lstch
-            lsib._parent = undefined
+            nj._lsib = lsib._id
             //插入sdfs,lsib在当前nj位置,当前nj后移
             let _id = nj._id
             let seq = get_sdfs_seq_via_id(sdfs,_id)
@@ -1061,6 +1095,8 @@ function add_lsib(sdfs:Array<Njson>,nj:Njson,lsib?:NJ_OR_UNDEFINED):Njson {
     }
     return(lsib)
 }
+
+
 
 function add_rsib(sdfs:Array<Njson>,nj:Njson,rsib?:NJ_OR_UNDEFINED):Njson {
     /*
@@ -1081,17 +1117,19 @@ function add_rsib(sdfs:Array<Njson>,nj:Njson,rsib?:NJ_OR_UNDEFINED):Njson {
             //
             let cond = is_lstch(nj)
             rsib._tree = nj._tree
+            let parent = <Njson>get_parent(sdfs,nj)
+            rsib._parent = parent._id
+            rsib._depth = parent._depth + 1
             if(cond) {
-                rsib._parent = nj._parent
-                nj._parent = undefined
                 rsib._rsib = null
             } else {
-                rsib._rsib = nj._rsib
-                rsib._parent = undefined
+                let old_rsib = <Njson>get_rsib(sdfs,nj)
+                rsib._rsib = old_rsib._id
+                old_rsib._lsib = rsib._id
             }
+            //
             nj._rsib = rsib._id
-            //rsib 一定不是fstch
-            rsib._lsib = undefined
+            rsib._lsib = nj._id
             //插入sdfs,lsib在当前nj位置+1,当前nj不动
             let _id = nj._id
             let seq = get_sdfs_seq_via_id(sdfs,_id)
@@ -1190,7 +1228,9 @@ export {
     //
     prepend_child,
     append_child,
-    insert_child,
+    insert_child_via_index,
+    insert_child_after,
+    insert_child_before,
     add_rsib,
     add_lsib,
     //
