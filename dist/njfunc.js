@@ -51,14 +51,27 @@
  *
  *
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.njarr2sdfs = exports.uninitize = exports.rootize = exports.leafize = exports.update_depth_when_disconnected = exports.update_tree_when_disconnected = exports.insert_child_tree_after = exports.insert_child_tree_before = exports.insert_child_tree_via_index = exports.add_lsib_tree = exports.add_rsib_tree = exports.append_child_tree = exports.prepend_child_tree = exports.update_depth_via_connto_nj = exports.update_tree_via_connto_nj = exports.add_lsib = exports.add_rsib = exports.insert_child_before = exports.insert_child_after = exports.insert_child_via_index = exports.append_child = exports.prepend_child = exports.get_sedfs = exports.is_sedfs_traverse_finished = exports.get_sedfs_prev = exports.get_sedfs_next = exports.clear_$visited = exports.get_edfs = exports.get_edfs_prev = exports.get_edfs_next = exports.get_sdfs = exports.get_sdfs_prev = exports.get_sdfs_next = exports.get_height = exports.get_count = exports.get_breadth = exports.get_depth = exports.get_which_lyr_des_depth = exports.get_lstlyr_des_depth = exports.get_fstlyr_des_depth = exports.get_lyr = exports.get_some_lyrs_deses = exports.get_which_lyr_deses = exports.get_lstlyr_deses = exports.get_fstlyr_deses = exports.get_deses = exports.get_dlmost_des = exports.get_drmost_des = exports.get_some_ances = exports.get_which_ance = exports.get_ances = exports.get_root = exports.get_parent = exports.get_lsib_of_fst_ance_having_lsib = exports.get_rsib_of_fst_ance_having_rsib = exports.get_some_sibs = exports.get_which_sib = exports.get_sibseq = exports.get_fstsib = exports.get_fsibs = exports.get_psibs = exports.get_sibs = exports.get_lsib = exports.get_lstsib = exports.get_rsib = exports.get_some_children = exports.get_which_child = exports.get_children = exports.get_lstch = exports.get_fstch = exports.get_sdfs_seq_via_id = exports.get_nj_via_id_from_njarr = exports.is_lonely = exports.is_connectable = exports.is_leaf = exports.is_midch = exports.is_lstch = exports.is_fstch = exports.is_root = exports.is_inited = exports.creat_sdfs = exports.creat_nj = exports.creat_rj = void 0;
 var cmmn = __importStar(require("./cmmn"));
 var idfunc = __importStar(require("./idfunc"));
 function creat_rj() {
@@ -571,11 +584,11 @@ function get_which_lyr_deses(njarr, nj, which) {
 }
 exports.get_which_lyr_deses = get_which_lyr_deses;
 function get_some_lyrs_deses(njarr, nj) {
+    var _a;
     var whiches = [];
     for (var _i = 2; _i < arguments.length; _i++) {
         whiches[_i - 2] = arguments[_i];
     }
-    var _a;
     var deses = whiches.map(function (which) { return get_which_lyr_deses(njarr, nj, which); });
     deses = (_a = Array.prototype).concat.apply(_a, deses);
     return (deses);
@@ -735,7 +748,7 @@ function get_sdfs_prev(njarr, nj) {
 }
 exports.get_sdfs_prev = get_sdfs_prev;
 function get_sdfs(njarr, nj) {
-    var nnj = nj;
+    var nnj = (nj === undefined) ? get_root(njarr) : nj;
     var nj_depth = get_depth(njarr, nnj);
     var sdfs = [];
     while (nnj !== null) {
@@ -1144,6 +1157,218 @@ function add_rsib(sdfs, nj, rsib) {
     return (rsib);
 }
 exports.add_rsib = add_rsib;
+//
+function update_tree_via_connto_nj(njarr, nj) {
+    njarr.forEach(function (r) {
+        r._tree = nj._tree;
+    });
+    return (njarr);
+}
+exports.update_tree_via_connto_nj = update_tree_via_connto_nj;
+function update_depth_via_connto_nj(njarr, nj, diff) {
+    njarr.forEach(function (r) {
+        r._depth = nj._depth + r._depth + diff;
+    });
+    return (njarr);
+}
+exports.update_depth_via_connto_nj = update_depth_via_connto_nj;
+function prepend_child_tree(njarr, ch_njarr, nj, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    var sdfs = is_already_sdfs ? njarr : get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr, nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr, nj, 1);
+    var chsdfs = is_already_sdfs ? ch_njarr : get_sdfs(ch_njarr);
+    var child = chsdfs[0];
+    child = prepend_child(sdfs, nj, child);
+    return (chsdfs);
+}
+exports.prepend_child_tree = prepend_child_tree;
+function append_child_tree(njarr, ch_njarr, nj, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    var sdfs = is_already_sdfs ? njarr : get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr, nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr, nj, 1);
+    var chsdfs = is_already_sdfs ? ch_njarr : get_sdfs(ch_njarr);
+    var child = chsdfs[0];
+    child = append_child(sdfs, nj, child);
+    return (chsdfs);
+}
+exports.append_child_tree = append_child_tree;
+function add_rsib_tree(njarr, rsib_njarr, nj, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    var sdfs = is_already_sdfs ? njarr : get_sdfs(njarr);
+    rsib_njarr = update_tree_via_connto_nj(rsib_njarr, nj);
+    rsib_njarr = update_depth_via_connto_nj(rsib_njarr, nj, 0);
+    var rsibsdfs = is_already_sdfs ? rsib_njarr : get_sdfs(rsib_njarr);
+    var rsib = rsibsdfs[0];
+    rsib = add_rsib(sdfs, nj, rsib);
+    return (rsibsdfs);
+}
+exports.add_rsib_tree = add_rsib_tree;
+function add_lsib_tree(njarr, lsib_njarr, nj, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    var sdfs = is_already_sdfs ? njarr : get_sdfs(njarr);
+    lsib_njarr = update_tree_via_connto_nj(lsib_njarr, nj);
+    lsib_njarr = update_depth_via_connto_nj(lsib_njarr, nj, 0);
+    var lsibsdfs = is_already_sdfs ? lsib_njarr : get_sdfs(lsib_njarr);
+    var lsib = lsibsdfs[0];
+    lsib = add_lsib(sdfs, nj, lsib);
+    return (lsibsdfs);
+}
+exports.add_lsib_tree = add_lsib_tree;
+function insert_child_tree_via_index(njarr, ch_njarr, nj, which, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    var sdfs = is_already_sdfs ? njarr : get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr, nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr, nj, 1);
+    var chsdfs = is_already_sdfs ? ch_njarr : get_sdfs(ch_njarr);
+    var child = chsdfs[0];
+    child = insert_child_via_index(sdfs, nj, which, child);
+    return (chsdfs);
+}
+exports.insert_child_tree_via_index = insert_child_tree_via_index;
+function insert_child_tree_before(njarr, ch_njarr, nj, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    var sdfs = is_already_sdfs ? njarr : get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr, nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr, nj, 1);
+    var chsdfs = is_already_sdfs ? ch_njarr : get_sdfs(ch_njarr);
+    var child = chsdfs[0];
+    child = insert_child_tree_before(sdfs, nj, child);
+    return (chsdfs);
+}
+exports.insert_child_tree_before = insert_child_tree_before;
+function insert_child_tree_after(njarr, ch_njarr, nj, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    var sdfs = is_already_sdfs ? njarr : get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr, nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr, nj, 1);
+    var chsdfs = is_already_sdfs ? ch_njarr : get_sdfs(ch_njarr);
+    var child = chsdfs[0];
+    child = insert_child_tree_after(sdfs, nj, child);
+    return (chsdfs);
+}
+exports.insert_child_tree_after = insert_child_tree_after;
+//
+function update_tree_when_disconnected(sdfs) {
+    var rj = sdfs[0];
+    sdfs.forEach(function (nj) {
+        nj._tree = rj._treeid;
+    });
+    return (sdfs);
+}
+exports.update_tree_when_disconnected = update_tree_when_disconnected;
+function update_depth_when_disconnected(sdfs) {
+    var rj = sdfs[0];
+    sdfs.forEach(function (nj) {
+        nj._depth = nj._depth - rj._depth;
+    });
+    return (sdfs);
+}
+exports.update_depth_when_disconnected = update_depth_when_disconnected;
+function leafize(nj) {
+    nj._fstch = null;
+    return (nj);
+}
+exports.leafize = leafize;
+function rootize(nj) {
+    nj._lsib = null;
+    nj._rsib = null;
+    nj._parent = null;
+    nj._depth = 0;
+    nj._tree = nj._id;
+    return (nj);
+}
+exports.rootize = rootize;
+function uninitize(nj) {
+    nj._fstch = null;
+    nj._lsib = null;
+    nj._rsib = null;
+    nj._parent = null;
+    nj._depth = 0;
+    nj._tree = undefined;
+    return (nj);
+}
+exports.uninitize = uninitize;
+/*-------------------------------*/
+function disconnect(njarr, nj, is_already_sdfs) {
+    if (is_already_sdfs === void 0) { is_already_sdfs = true; }
+    //
+    var sdfs;
+    if (is_already_sdfs) {
+        sdfs = njarr;
+    }
+    else {
+        sdfs = njarr2sdfs(njarr);
+    }
+    //
+    var cond = is_root(nj);
+    if (cond) {
+        //如果要脱离树的节点是根节点,什么也不做
+        return (nj);
+    }
+    else if (is_lonely(nj)) {
+        //如果是独生节点(没有兄弟)
+        ////parent变为leaf节点
+        var parent_5 = get_parent(njarr, nj);
+        parent_5 = leafize(parent_5);
+        //
+        var nsdfs = update_disconnected_nodes(nd, nodes);
+        var nnodes = update_orig_nodes(nsdfs, nodes);
+        rootize(nd);
+        //
+        return ([nd, nnodes]);
+    }
+    else {
+        if (is_fstch(nd)) {
+            //节点变味新树的根节点
+            var rsib = get_rsib(nd, nodes);
+            //右兄弟变成了fstch, lsib 指向null
+            rsib._lsib = null;
+            //右兄弟变成了fstch,parent要指向rsib
+            //rsib._parent = nd._parent fstch的parent不需要改变
+            // parent 的fstch 要指向rsib
+            var parent_6 = get_parent(nd, nodes);
+            parent_6._fstch = nd._rsib;
+            //后代节点关系不变，但是tree变为当前节点._id
+            var nsdfs = update_disconnected_nodes(nd, nodes);
+            //从原来的nodes删除分离出的子树的所有节点
+            var nnodes = update_orig_nodes(nsdfs, nodes);
+            //nd 变为分离出去的tree的root
+            rootize(nd);
+            //
+            return ([nd, nnodes]);
+        }
+        else if (is_lstch(nd)) {
+            //节点变味新树的根节点
+            var lsib = get_lsib(nd, nodes);
+            lsib._rsib = nd._rsib;
+            //左兄弟变成了lstch,左邻居要指向parent
+            lsib._parent = nd._parent;
+            //后代节点关系不变，但是tree变为当前节点._id
+            var nsdfs = update_disconnected_nodes(nd, nodes);
+            //从原来的nodes删除分离出的子树的所有节点
+            var nnodes = update_orig_nodes(nsdfs, nodes);
+            //nd 变为分离出去的tree的root
+            rootize(nd);
+            //
+            return ([nd, nnodes]);
+        }
+        else {
+            //节点变味新树的根节点
+            var lsib = get_lsib(nd, nodes);
+            lsib._rsib = nd._rsib;
+            //后代节点关系不变，但是tree变为当前节点._id
+            var nsdfs = update_disconnected_nodes(nd, nodes);
+            //从原来的nodes删除分离出的子树的所有节点
+            var nnodes = update_orig_nodes(nsdfs, nodes);
+            //nd 变为分离出去的tree的root
+            rootize(nd);
+            //
+            return ([nd, nnodes]);
+        }
+    }
+}
 //transform
 function njarr2sdfs(njarr) {
     var rj = get_root(njarr);

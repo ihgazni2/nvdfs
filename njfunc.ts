@@ -735,10 +735,10 @@ function get_sdfs_prev(njarr:Array<Njson>,nj:Njson):NJ_OR_NULL {
 }
 
 
-function get_sdfs(njarr:Array<Njson>,nj:Njson):Array<NJ_OR_NULL> {
-    let nnj:NJ_OR_NULL = nj;
+function get_sdfs(njarr:Array<Njson>,nj?:NJ_OR_UNDEFINED):Array<Njson> {
+    let nnj:NJ_OR_NULL = (nj === undefined)?<Njson>get_root(njarr):nj;
     let nj_depth = get_depth(njarr,nnj)
-    let sdfs:Array<NJ_OR_NULL> =[]
+    let sdfs:Array<Njson> =[]
     while(nnj!==null) {
         sdfs.push(nnj)
         nnj = get_sdfs_next(njarr,nnj)
@@ -1133,6 +1133,332 @@ function add_rsib(sdfs:Array<Njson>,nj:Njson,rsib?:NJ_OR_UNDEFINED):Njson {
     return(rsib)
 }
 
+//
+function update_tree_via_connto_nj(njarr:Array<Njson>,nj:Njson):Array<Njson> {
+    njarr.forEach(
+        r=>{
+            r._tree = nj._tree
+        }
+    )
+    return(njarr)
+}
+
+function update_depth_via_connto_nj(njarr:Array<Njson>,nj:Njson,diff:number):Array<Njson> {
+    njarr.forEach(
+        r=>{
+            r._depth = nj._depth + r._depth + diff
+        }
+    )
+    return(njarr)
+}
+
+
+
+function prepend_child_tree(
+    njarr:Array<Njson>,
+    ch_njarr:Array<Njson>,
+    nj:Njson,
+    is_already_sdfs:boolean=true
+):any {
+    let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
+    let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
+    let child = chsdfs[0];
+    child = prepend_child(sdfs,nj,child);
+    return([chsdfs,child])
+}
+
+
+function append_child_tree(
+    njarr:Array<Njson>,
+    ch_njarr:Array<Njson>,
+    nj:Njson,
+    is_already_sdfs:boolean=true
+):any {
+    let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
+    let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
+    let child = chsdfs[0];
+    child = append_child(sdfs,nj,child);
+    return([chsdfs,child])
+}
+
+
+function add_rsib_tree(
+    njarr:Array<Njson>,
+    rsib_njarr:Array<Njson>,
+    nj:Njson,
+    is_already_sdfs:boolean=true
+):any {
+    let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
+    rsib_njarr = update_tree_via_connto_nj(rsib_njarr,nj);
+    rsib_njarr = update_depth_via_connto_nj(rsib_njarr,nj,0);
+    let rsibsdfs = is_already_sdfs?rsib_njarr:<Array<Njson>>get_sdfs(rsib_njarr);
+    let rsib = rsibsdfs[0];
+    rsib = add_rsib(sdfs,nj,rsib);
+    return([rsibsdfs,rsib])
+}
+
+
+function add_lsib_tree(
+    njarr:Array<Njson>,
+    lsib_njarr:Array<Njson>,
+    nj:Njson,
+    is_already_sdfs:boolean=true
+):any {
+    let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
+    lsib_njarr = update_tree_via_connto_nj(lsib_njarr,nj);
+    lsib_njarr = update_depth_via_connto_nj(lsib_njarr,nj,0);
+    let lsibsdfs = is_already_sdfs?lsib_njarr:<Array<Njson>>get_sdfs(lsib_njarr);
+    let lsib = lsibsdfs[0];
+    lsib = add_lsib(sdfs,nj,lsib);
+    return([lsibsdfs,lsib])
+}
+
+
+function insert_child_tree_via_index(
+    njarr:Array<Njson>,
+    ch_njarr:Array<Njson>,
+    nj:Njson,
+    which:number,
+    is_already_sdfs:boolean=true
+):any {
+    let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
+    let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
+    let child = chsdfs[0]
+    child = insert_child_via_index(sdfs,nj,which,child)
+    return([chsdfs,child])
+}
+
+
+function insert_child_tree_before(
+    njarr:Array<Njson>,
+    ch_njarr:Array<Njson>,
+    nj:Njson,
+    is_already_sdfs:boolean=true
+):any {
+    let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
+    let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
+    let child = chsdfs[0]
+    child = insert_child_before(sdfs,nj,child)
+    return([chsdfs,child])
+}
+
+
+
+function insert_child_tree_after(
+    njarr:Array<Njson>,
+    ch_njarr:Array<Njson>,
+    nj:Njson,
+    is_already_sdfs:boolean=true
+):any {
+    let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
+    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
+    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
+    let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
+    let child = chsdfs[0]
+    child = insert_child_after(sdfs,nj,child)
+    return([chsdfs,child])
+}
+
+//
+function update_tree_when_disconnected(sdfs:Array<Njson>) {
+    //脱离后的子树
+    let rj = sdfs[0]
+    sdfs.forEach(
+        nj=>{
+            nj._tree = rj._tree
+        }
+    )
+    return(sdfs)
+}
+
+
+function update_depth_when_disconnected(sdfs:Array<Njson>) {
+    let rj = sdfs[0]
+    sdfs.forEach(
+        nj=>{
+            nj._depth = nj._depth - rj._depth
+        }
+    )
+    return(sdfs)
+}
+
+
+function leafize(nj:Njson) {
+    /*
+     * 把一个Njson 叶节点化,也就是_fstch =null,
+     * 没有fstch
+     *
+     */
+    nj._fstch = null;
+    return(nj)
+}
+
+function rootize(nj:Njson) {
+    /*
+     * 把一个单独的节点根节点化
+     * 如果此节点有子孙
+     * 要使用rootize_tree
+     *
+     */
+    nj._lsib = null;
+    nj._rsib = null;
+    nj._parent = null;
+    nj._depth = 0;
+    nj._tree = nj._id;
+    return(nj)
+}
+
+function rootize_tree(
+    njarr:Array<Njson>,
+    nj:Njson
+):any {
+    let nsdfs = get_sdfs(njarr,nj)
+    nsdfs = update_tree_when_disconnected(nsdfs)
+    nsdfs = update_depth_when_disconnected(nsdfs)
+    nj = rootize(nj);
+    //
+    return([nsdfs,nj])
+}
+
+
+function uninitize(nj:Njson) {
+    /*
+     * 把一个节点未初始化
+     * _tree 置为undefined,其他与rootize相同
+     */
+    nj._fstch = null;
+    nj._lsib = null;
+    nj._rsib = null;
+    nj._parent = null;
+    nj._depth = 0;
+    nj._tree = undefined;
+    return(nj)
+}
+
+function njarr2sdfs_with_is_already_sdfs(njarr,is_already_sdfs:boolean=true):Array<Njson> {
+    let sdfs:Array<Njson>;
+    if(is_already_sdfs) {
+        sdfs = njarr
+    } else {
+        sdfs = njarr2sdfs(njarr)
+    }
+    return(sdfs)
+}
+
+
+function disconnect(njarr:Array<Njson>,nj:Njson,is_already_sdfs:boolean=true):any {
+    //
+    let sdfs:Array<Njson>;
+    sdfs = njarr2sdfs_with_is_already_sdfs(njarr,is_already_sdfs)
+    //
+    let cond = is_root(nj)
+    if(cond) {
+        //如果要脱离树的节点是根节点,什么也不做
+        return([sdfs,nj])
+    } else if(is_lonely(nj)) {
+        //如果是独生节点(没有兄弟)
+        ////parent变为leaf节点
+        let parent = get_parent(njarr,nj) 
+        parent = leafize(<Njson>parent);
+        //处理脱离后的子孙节点_depth ,_tree
+        return(rootize_tree(njarr,nj));
+    } else {
+        //父节点多于一个儿子
+        if(is_fstch(nj)) {
+            //被删除节点是fstch,右邻居的左邻居置null, parent的fstch 变为右邻居
+            let rsib = <Njson>get_rsib(njarr,nj)
+            //右兄弟变成了fstch, lsib 指向null
+            rsib._lsib = null
+            //右兄弟变成了fstch,parent要指向rsib
+            let parent = <Njson>get_parent(njarr,nj)
+            parent._fstch = nj._rsib
+        } else if(is_lstch(nj)) {
+            //被删除节点是lstch,左邻居的右邻居置null
+            ////////////////////////////
+            let lsib = <Njson>get_lsib(njarr,nj)
+            lsib._rsib = null 
+        } else {
+            //被删除节点是midch,左右邻居互指
+            let lsib = <Njson>get_lsib(njarr,nj)
+            lsib._rsib = nj._rsib
+            let rsib = <Njson>get_rsib(njarr,nj)
+            rsib._lsib = nj._lsib
+        }
+        //后代节点关系不变，但是tree变为当前节点._id
+        //处理脱离后的子孙节点_depth ,_tree
+        return(rootize_tree(njarr,nj));
+    }
+}
+
+
+function rm_fstch(njarr:Array<Njson>,nj:Njson,is_already_sdfs:boolean=true):any {
+    let fstch = get_fstch(njarr,nj)
+    if(fstch === null) {
+        let sdfs:Array<Njson>;
+        sdfs = njarr2sdfs_with_is_already_sdfs(njarr,is_already_sdfs)
+        return([sdfs,null])
+    } else {
+        return(disconnect(njarr,fstch,is_already_sdfs))
+    }
+}
+
+
+function rm_lstch(njarr:Array<Njson>,nj:Njson,is_already_sdfs:boolean=true):any {
+    let lstch = get_lstch(njarr,nj)
+    if(lstch === null) {
+        let sdfs:Array<Njson>;
+        sdfs = njarr2sdfs_with_is_already_sdfs(njarr,is_already_sdfs)
+        return([sdfs,null])
+    } else {
+        return(disconnect(njarr,lstch,is_already_sdfs))
+    }
+}
+
+function rm_which_child(njarr:Array<Njson>,nj:Njson,which:number,is_already_sdfs:boolean=true):any {
+    let child = get_which_child(njarr,nj,which)
+    if(child === null) {
+        let sdfs:Array<Njson>;
+        sdfs = njarr2sdfs_with_is_already_sdfs(njarr,is_already_sdfs)
+        return([sdfs,null])
+    } else {
+        return(disconnect(njarr,child,is_already_sdfs))
+    }
+}
+
+function rm_all_children(njarr:Array<Njson>,nj:Njson,is_already_sdfs:boolean=true):any {
+    let children = get_children(njarr,nj)
+    let arr:Array<any> = children.map(
+        child => {
+            return(disconnect(njarr,child,is_already_sdfs))
+        }
+    )
+    return(arr)
+}
+
+function rm_some_children(
+    njarr:Array<Njson>,
+    nj:Njson,
+    whiches:Array<number>,
+    is_already_sdfs:boolean=true
+):any {
+    let children = get_some_children(njarr,nj,...whiches)
+    let arr:Array<any> = children.map(
+        child => {
+            return(disconnect(njarr,child,is_already_sdfs))
+        }
+    )
+    return(arr)
+}
+
+
 
 //transform
 
@@ -1142,6 +1468,124 @@ function njarr2sdfs(njarr:Array<Njson>):Array<Njson> {
     return(sdfs)
 }
 
+
+interface Ejson {
+    _id:string,
+    _depth:number,
+    _breadth:number,
+    _pbreadth:null|number,
+    _children:Array<any> 
+}
+
+
+function nj2ele(njarr:Array<Njson>,nj:Njson):Ejson {
+    let ele=<Ejson>{};
+    ele._depth = get_depth(njarr,nj)
+    ele._breadth = get_breadth(njarr,nj) 
+    let p = get_parent(njarr,nj)
+    ele._pbreadth = (p===null)? null : get_breadth(njarr,nj) 
+    ele._id = nj._id
+    return(ele)
+}
+
+function _nj2unhandled_ele(nj:Njson):any {
+    let o:any = {}
+    o.ele =<Ejson>{}
+    o.nj = nj
+    o.ele._id = nj._id
+    o.ele._children = []
+    return(o) 
+}
+
+function sdfs2mat(njarr:Array<Njson>,sdfs:Array<Njson>|undefined):any {
+    if(sdfs === undefined) {sdfs = njarr }
+    let m:any = []
+    let nj = sdfs[0]
+    let unhandled = [_nj2unhandled_ele(nj)]
+    unhandled[0].ele._pbreadth = null
+    while(unhandled.length>0){
+        let next_unhandled = []
+        for(let i=0;i<unhandled.length;i++) {
+            unhandled[i].ele._breadth = i
+            unhandled[i].ele._depth = m.length
+            let children:any = get_children(njarr,unhandled[i].nj)
+            children = children.map(nj=>_nj2unhandled_ele(nj))
+            children.forEach(
+                (r,index)=>{
+                    r.ele._pbreadth = unhandled[i].ele._breadth
+                    unhandled[i].ele._children.push([(m.length+1),next_unhandled.length+index])
+                }
+            )
+            next_unhandled = next_unhandled.concat(children)
+        }
+        let lyr = unhandled.map(r=>r.ele)
+        m.push(lyr)
+        unhandled = next_unhandled
+    }   
+    return(m)  
+}
+
+
+function sdfs2edfs(njarr:Array<Njson>,sdfs:Array<Njson>|undefined):any {
+    if(sdfs === undefined) {sdfs = njarr2sdfs(njarr) }
+    return(get_edfs(njarr,sdfs[0]))
+}
+
+function sdfs2sedfs(
+    njarr:Array<Njson>,
+    sdfs:Array<Njson>,
+    deepcopy:boolean=false,
+    clear:boolean=true    
+) {
+    if(sdfs === undefined) {sdfs = njarr2sdfs(njarr) }
+    return(get_sedfs(njarr,sdfs[0],deepcopy,clear))
+}
+
+function edfs2sdfs(njarr:Array<Njson>,edfs:Array<Njson>):any {
+    let nj = edfs[edfs.length-1]
+    return(get_sdfs(njarr,nj))
+}
+
+function edfs2mat(njarr:Array<Njson>,edfs:Array<Njson>):any {
+    let sdfs = edfs2sdfs(njarr,edfs)
+    let m = sdfs2mat(njarr,sdfs)
+    return(m)
+}
+
+function edfs2sedfs(
+    njarr:Array<Njson>,
+    edfs:Array<Njson>,
+    deepcopy:boolean=false,
+    clear:boolean=true
+
+) {
+    let sdfs = edfs2sdfs(njarr,edfs)
+    return(sdfs2sedfs(njarr,sdfs,deepcopy,clear)) 
+}
+
+
+
+function sedfs2sdfs(njarr:Array<Njson>,sedfs:Array<Njson>):any {
+    let nj = sedfs[0]
+    return(get_sdfs(njarr,nj))
+}
+
+
+function sedfs2mat(njarr:Array<Njson>,sedfs:Array<Njson>):any {
+    let sdfs = sedfs2sdfs(njarr,sedfs)
+    let m = sdfs2mat(njarr,sdfs)
+    return(m)
+}
+
+function sedfs2edfs(njarr:Array<Njson>,sedfs:Array<Njson>):any {
+    let sdfs = sedfs2sdfs(njarr,sedfs)
+    let edfs = sdfs2edfs(njarr,sdfs)
+    return(edfs)
+}
+
+
+
+//
 
 
 export {
@@ -1229,7 +1673,40 @@ export {
     insert_child_before,
     add_rsib,
     add_lsib,
+    update_tree_via_connto_nj,
+    update_depth_via_connto_nj,
+    prepend_child_tree,
+    append_child_tree,
+    add_rsib_tree,
+    add_lsib_tree,
+    insert_child_tree_via_index,
+    insert_child_tree_before,
+    insert_child_tree_after,
+    update_tree_when_disconnected,
+    update_depth_when_disconnected,
+    leafize,
+    rootize,
+    rootize_tree,
+    uninitize,
+    //
+    disconnect,
+    rm_fstch,
+    rm_lstch,
+    rm_which_child,
+    rm_some_children,
+    rm_all_children,
     //
     njarr2sdfs,
+    Ejson,
+    nj2ele,
+    sdfs2mat,
+    sdfs2edfs,
+    sdfs2sedfs,
+    edfs2sdfs,
+    edfs2mat,
+    edfs2sedfs,
+    sedfs2sdfs,
+    sedfs2mat,
+    sedfs2edfs
 }
 
