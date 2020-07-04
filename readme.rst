@@ -8,7 +8,13 @@ install
 
 usage
 -----
-    
+
+ndcls
+=====
+
+njfunc
+======
+
     ::
         
         import * as njfunc from "./njfunc";
@@ -73,6 +79,12 @@ usage
 
 apis
 ----
+
+ndcls
+=====
+
+njfunc
+======
 
 - creat_rj():Njson                                                                         创建 一个 叶子根节点
 - creat_nj():Njson                                                                         创建 一个 未初始化的叶子根节点
