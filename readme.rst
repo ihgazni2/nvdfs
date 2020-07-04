@@ -1,3 +1,7 @@
+.. contents:: Table of Contents
+   :depth: 5
+
+
 nvdfs
 -----
 - depth-first-tree in list/array
