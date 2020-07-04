@@ -16,11 +16,14 @@ njfunc
 ======
 
     ::
-        
-        import * as njfunc from "./njfunc";
-        import * as assert from "assert";
-        import * as njterm from "./njterm";
-        
+       
+        /*
+            import {njfunc,njterm} from "nvdfs"
+            import * as assert from "assert";
+        */    
+        var njfunc = require('nvdfs').njfunc
+        var njterm = require('nvdfs').njterm
+        var assert = require('assert')
         
         var sdfs   = njfunc.creat_sdfs();
         var nj0 = sdfs[0]
