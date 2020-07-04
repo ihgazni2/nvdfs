@@ -19,7 +19,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.show_sdfs_with_tag = exports.show_sdfs_with_id = exports.show_sdfs1 = exports.show_sdfs0 = exports.get_sdfs_repr_arr = void 0;
+exports.show_sedfs = exports.dflt_sedfs_show_connd = exports.show_sdfs_with_tag = exports.show_sdfs_with_id = exports.show_sdfs1 = exports.show_sdfs0 = exports.get_sdfs_repr_arr = exports.dflt_sdfs_calc_conns = exports.dflt_sdfs_show_connd = void 0;
 var njfunc = __importStar(require("./njfunc"));
 var dflt_sdfs_show_connd = {
     't': '├── ',
@@ -27,6 +27,7 @@ var dflt_sdfs_show_connd = {
     'l': '└── ',
     'ws': '    '
 };
+exports.dflt_sdfs_show_connd = dflt_sdfs_show_connd;
 function dflt_calc_conn_map_func(conn) {
     var rslt;
     if (conn === 't') {
@@ -76,6 +77,7 @@ function dflt_sdfs_calc_conns(njarr, nj) {
     }
     return (nj);
 }
+exports.dflt_sdfs_calc_conns = dflt_sdfs_calc_conns;
 function dflt_sdfs_show_callback(sdfs, conns, i, k) {
     var s = (conns + '[' + i + ']' + ' : ' + sdfs[i][k]);
     return (s);
@@ -130,3 +132,58 @@ function show_sdfs_with_id(njarr, nj) {
     show_sdfs1(njarr, nj, '_id', dflt_sdfs_show_callback);
 }
 exports.show_sdfs_with_id = show_sdfs_with_id;
+////
+function get_edfs_repr_arr(njarr, nj, k, cb) {
+    if (k === void 0) { k = '_id'; }
+    if (cb === void 0) { cb = dflt_sdfs_show_callback; }
+    var depth = njfunc.get_depth(njarr, nj);
+    var edfs = njfunc.get_edfs(njarr, nj);
+    edfs.reverse();
+    edfs = edfs.map(function (nj) { return dflt_sdfs_calc_conns(njarr, nj); });
+    edfs.reverse();
+    var conns_array = edfs.map(function (nj) { return nj.$ui.conns; });
+    conns_array = conns_array.map(function (conns) { return conns.slice(depth); });
+    conns_array = conns_array.map(function (conns) { return conns2repr(conns, dflt_sdfs_show_connd); });
+    var arr = conns_array.map(function (conns, i) { return cb(edfs, conns, i, k); });
+    arr = arr.filter(function (r, i) { return (edfs[i].$ui.display === true); });
+    return (arr);
+}
+////
+var dflt_sedfs_show_connd = {
+    indent: '    ',
+    stag_prefix: '<',
+    stag_suffix: '>',
+    etag_prefix: '</',
+    etag_suffix: '>',
+};
+exports.dflt_sedfs_show_connd = dflt_sedfs_show_connd;
+function gen_tag(tag, prefix, suffix) {
+    return (prefix + tag + suffix);
+}
+function show_sedfs(njarr, nj, k, show_connd) {
+    if (nj === void 0) { nj = undefined; }
+    if (k === void 0) { k = '_id'; }
+    if (show_connd === void 0) { show_connd = dflt_sedfs_show_connd; }
+    if (nj === undefined) {
+        nj = njfunc.get_root(njarr);
+    }
+    else {
+    }
+    var sedfs = njfunc.get_sedfs(njarr, nj);
+    var depths = sedfs.map(function (nj) { return njfunc.get_depth(njarr, nj); });
+    var depth = njfunc.get_depth(njarr, nj);
+    var indents = depths.map(function (r) { return show_connd.indent.repeat(r - depth); });
+    var tags = sedfs.map(function (nj) {
+        if (nj.$visited === false) {
+            nj.$visited = true;
+            return (gen_tag(nj[k], show_connd.stag_prefix, show_connd.stag_suffix));
+        }
+        else {
+            return (gen_tag(nj[k], show_connd.etag_prefix, show_connd.etag_suffix));
+        }
+    });
+    var lines = tags.map(function (tag, i) { return (indents[i] + tag); });
+    var repr = lines.join('\n');
+    console.log(repr);
+}
+exports.show_sedfs = show_sedfs;

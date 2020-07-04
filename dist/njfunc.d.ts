@@ -8,6 +8,7 @@ interface Njson {
     _tree: undefined | string;
     $visited?: any;
     $ui?: any;
+    [k: string]: any;
 }
 declare type NJ_OR_NULL = Njson | null;
 declare type NJ_OR_UNDEFINED = Njson | undefined;
@@ -64,7 +65,7 @@ declare function get_lstlyr_des_depth(njarr: Array<Njson>, nj: Njson): number | 
 declare function get_which_lyr_des_depth(njarr: Array<Njson>, nj: Njson, which: number): number | null;
 declare function get_sdfs_next(njarr: Array<Njson>, nj: Njson): NJ_OR_NULL;
 declare function get_sdfs_prev(njarr: Array<Njson>, nj: Njson): NJ_OR_NULL;
-declare function get_sdfs(njarr: Array<Njson>, nj: NJ_OR_UNDEFINED): Array<NJ_OR_NULL>;
+declare function get_sdfs(njarr: Array<Njson>, nj?: NJ_OR_UNDEFINED): Array<Njson>;
 declare function get_edfs_next(njarr: Array<Njson>, nj: Njson): NJ_OR_NULL;
 declare function get_edfs_prev(njarr: Array<Njson>, nj: Njson): NJ_OR_NULL;
 declare function get_edfs(njarr: Array<Njson>, nj: Njson): Array<NJ_OR_NULL>;
@@ -82,17 +83,42 @@ declare function add_lsib(sdfs: Array<Njson>, nj: Njson, lsib?: NJ_OR_UNDEFINED)
 declare function add_rsib(sdfs: Array<Njson>, nj: Njson, rsib?: NJ_OR_UNDEFINED): Njson;
 declare function update_tree_via_connto_nj(njarr: Array<Njson>, nj: Njson): Array<Njson>;
 declare function update_depth_via_connto_nj(njarr: Array<Njson>, nj: Njson, diff: number): Array<Njson>;
-declare function prepend_child_tree(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): Array<Njson>;
-declare function append_child_tree(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): Array<Njson>;
-declare function add_rsib_tree(njarr: Array<Njson>, rsib_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): Array<Njson>;
-declare function add_lsib_tree(njarr: Array<Njson>, lsib_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): Array<Njson>;
-declare function insert_child_tree_via_index(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, which: number, is_already_sdfs?: boolean): Array<Njson>;
-declare function insert_child_tree_before(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): Array<Njson>;
-declare function insert_child_tree_after(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): Array<Njson>;
+declare function prepend_child_tree(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function append_child_tree(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function add_rsib_tree(njarr: Array<Njson>, rsib_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function add_lsib_tree(njarr: Array<Njson>, lsib_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function insert_child_tree_via_index(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, which: number, is_already_sdfs?: boolean): any;
+declare function insert_child_tree_before(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function insert_child_tree_after(njarr: Array<Njson>, ch_njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
 declare function update_tree_when_disconnected(sdfs: Array<Njson>): Njson[];
 declare function update_depth_when_disconnected(sdfs: Array<Njson>): Njson[];
 declare function leafize(nj: Njson): Njson;
 declare function rootize(nj: Njson): Njson;
+declare function rootize_tree(njarr: Array<Njson>, nj: Njson): any;
 declare function uninitize(nj: Njson): Njson;
+declare function disconnect(njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function rm_fstch(njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function rm_lstch(njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function rm_which_child(njarr: Array<Njson>, nj: Njson, which: number, is_already_sdfs?: boolean): any;
+declare function rm_all_children(njarr: Array<Njson>, nj: Njson, is_already_sdfs?: boolean): any;
+declare function rm_some_children(njarr: Array<Njson>, nj: Njson, whiches: Array<number>, is_already_sdfs?: boolean): any;
 declare function njarr2sdfs(njarr: Array<Njson>): Array<Njson>;
-export { Njson, NJ_OR_NULL, NJ_OR_UNDEFINED, BL_OR_UNDEFINED, creat_rj, creat_nj, creat_sdfs, is_inited, is_root, is_fstch, is_lstch, is_midch, is_leaf, is_connectable, is_lonely, get_nj_via_id_from_njarr, get_sdfs_seq_via_id, get_fstch, get_lstch, get_children, get_which_child, get_some_children, get_rsib, get_lstsib, get_lsib, get_sibs, get_psibs, get_fsibs, get_fstsib, get_sibseq, get_which_sib, get_some_sibs, get_rsib_of_fst_ance_having_rsib, get_lsib_of_fst_ance_having_lsib, get_parent, get_root, get_ances, get_which_ance, get_some_ances, get_drmost_des, get_dlmost_des, get_deses, get_fstlyr_deses, get_lstlyr_deses, get_which_lyr_deses, get_some_lyrs_deses, get_lyr, get_fstlyr_des_depth, get_lstlyr_des_depth, get_which_lyr_des_depth, get_depth, get_breadth, get_count, get_height, get_sdfs_next, get_sdfs_prev, get_sdfs, get_edfs_next, get_edfs_prev, get_edfs, clear_$visited, get_sedfs_next, get_sedfs_prev, is_sedfs_traverse_finished, get_sedfs, prepend_child, append_child, insert_child_via_index, insert_child_after, insert_child_before, add_rsib, add_lsib, update_tree_via_connto_nj, update_depth_via_connto_nj, prepend_child_tree, append_child_tree, add_rsib_tree, add_lsib_tree, insert_child_tree_via_index, insert_child_tree_before, insert_child_tree_after, update_tree_when_disconnected, update_depth_when_disconnected, leafize, rootize, uninitize, njarr2sdfs, };
+interface Ejson {
+    _id: string;
+    _depth: number;
+    _breadth: number;
+    _pbreadth: null | number;
+    _children: Array<any>;
+}
+declare function nj2ele(njarr: Array<Njson>, nj: Njson): Ejson;
+declare function sdfs2mat(njarr: Array<Njson>, sdfs: Array<Njson> | undefined): any;
+declare function sdfs2edfs(njarr: Array<Njson>, sdfs: Array<Njson> | undefined): any;
+declare function sdfs2sedfs(njarr: Array<Njson>, sdfs: Array<Njson>, deepcopy?: boolean, clear?: boolean): Njson[];
+declare function edfs2sdfs(njarr: Array<Njson>, edfs: Array<Njson>): any;
+declare function edfs2mat(njarr: Array<Njson>, edfs: Array<Njson>): any;
+declare function edfs2sedfs(njarr: Array<Njson>, edfs: Array<Njson>, deepcopy?: boolean, clear?: boolean): Njson[];
+declare function sedfs2sdfs(njarr: Array<Njson>, sedfs: Array<Njson>): any;
+declare function sedfs2mat(njarr: Array<Njson>, sedfs: Array<Njson>): any;
+declare function sedfs2edfs(njarr: Array<Njson>, sedfs: Array<Njson>): any;
+declare function get_nj_via_depth_and_breadth(njarr: Array<Njson>, depth: number, breadth: number): any;
+export { Njson, NJ_OR_NULL, NJ_OR_UNDEFINED, BL_OR_UNDEFINED, creat_rj, creat_nj, creat_sdfs, is_inited, is_root, is_fstch, is_lstch, is_midch, is_leaf, is_connectable, is_lonely, get_nj_via_id_from_njarr, get_sdfs_seq_via_id, get_fstch, get_lstch, get_children, get_which_child, get_some_children, get_rsib, get_lstsib, get_lsib, get_sibs, get_psibs, get_fsibs, get_fstsib, get_sibseq, get_which_sib, get_some_sibs, get_rsib_of_fst_ance_having_rsib, get_lsib_of_fst_ance_having_lsib, get_parent, get_root, get_ances, get_which_ance, get_some_ances, get_drmost_des, get_dlmost_des, get_deses, get_fstlyr_deses, get_lstlyr_deses, get_which_lyr_deses, get_some_lyrs_deses, get_lyr, get_fstlyr_des_depth, get_lstlyr_des_depth, get_which_lyr_des_depth, get_depth, get_breadth, get_count, get_height, get_sdfs_next, get_sdfs_prev, get_sdfs, get_edfs_next, get_edfs_prev, get_edfs, clear_$visited, get_sedfs_next, get_sedfs_prev, is_sedfs_traverse_finished, get_sedfs, prepend_child, append_child, insert_child_via_index, insert_child_after, insert_child_before, add_rsib, add_lsib, update_tree_via_connto_nj, update_depth_via_connto_nj, prepend_child_tree, append_child_tree, add_rsib_tree, add_lsib_tree, insert_child_tree_via_index, insert_child_tree_before, insert_child_tree_after, update_tree_when_disconnected, update_depth_when_disconnected, leafize, rootize, rootize_tree, uninitize, disconnect, rm_fstch, rm_lstch, rm_which_child, rm_some_children, rm_all_children, njarr2sdfs, Ejson, nj2ele, sdfs2mat, sdfs2edfs, sdfs2sedfs, edfs2sdfs, edfs2mat, edfs2sedfs, sedfs2sdfs, sedfs2mat, sedfs2edfs, get_nj_via_depth_and_breadth, };

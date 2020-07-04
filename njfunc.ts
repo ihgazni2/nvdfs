@@ -66,6 +66,7 @@ interface Njson {
     _tree:undefined|string,
     $visited?:any,
     $ui?:any,
+    [k:string]:any
 }
 
 type NJ_OR_NULL = Njson | null
@@ -423,8 +424,8 @@ function get_psibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
     let psibs:Array<Njson> = []
     let psib = nj
     while(psib._lsib !== null) {
-        psibs.push(psib)
         psib = get_nj_via_id_from_njarr(njarr,psib._lsib)
+        psibs.unshift(psib)
     }
     return(psibs)
 }
@@ -434,8 +435,8 @@ function get_fsibs(njarr:Array<Njson>,nj:Njson):Array<Njson> {
     let fsibs:Array<Njson> = []
     let fsib = nj
     while(fsib._rsib !== null) {
-        fsibs.push(fsib)
         fsib = get_nj_via_id_from_njarr(njarr,fsib._rsib)
+        fsibs.push(fsib)
     }
     return(fsibs)
 }
@@ -475,7 +476,7 @@ function get_some_sibs(njarr:Array<Njson>,nj:Njson,...whiches:Array<number>):Arr
 
 function get_sibseq(njarr:Array<Njson>,nj:Njson):number {
     let sibs = get_sibs(njarr,nj,true)
-    let seq = cmmn.dtb_get_seq_via_id(njarr,nj._id)
+    let seq = cmmn.dtb_get_seq_via_id(sibs,nj._id)
     return(seq)
 }
 
@@ -507,11 +508,11 @@ function get_lsib_of_fst_ance_having_lsib(njarr:Array<Njson>,nj:Njson):NJ_OR_NUL
     */
     let parent = get_parent(njarr,nj)
     while(parent!==null) {
-        let lsib = get_lsib(njarr,nj)
+        let lsib = get_lsib(njarr,parent)
         if(lsib!==null) {
             return(lsib)
         } else {
-            parent = get_parent(njarr,nj)
+            parent = get_parent(njarr,parent)
         }
     }
     return(null)
@@ -930,6 +931,7 @@ function prepend_child(sdfs:Array<Njson>,nj:Njson,child?:any):Njson {
         //update nj._fstch
         nj._fstch = child._id
         //update sdfs
+        //prepend child 就是在自己后面添加
         let _id = nj._id
         let seq = get_sdfs_seq_via_id(sdfs,_id)
         let chseq = seq + 1
@@ -980,7 +982,10 @@ function append_child(sdfs:Array<Njson>,nj:Njson,child?:any):Njson {
             old_lstch = get_lstch(sdfs,nj)
             old_lstch._rsib = child._id
             child._lsib = old_lstch._id 
-            //
+            //append child
+            //首先要找到当前lstch的drmost descedant
+            //然后在此 drmost descedant 之后(drmost-descedant-seq + 1)
+            //追加
             let old_lstch_drmost:any = get_drmost_des(sdfs,old_lstch)
             let seq = get_sdfs_seq_via_id(sdfs,old_lstch_drmost._id)
             let chseq = seq + 1
@@ -1076,10 +1081,11 @@ function add_lsib(sdfs:Array<Njson>,nj:Njson,lsib?:NJ_OR_UNDEFINED):Njson {
             //
             lsib._rsib = nj._id
             nj._lsib = lsib._id
-            //插入sdfs,lsib在当前nj位置,当前nj后移
-            let _id = nj._id
-            let seq = get_sdfs_seq_via_id(sdfs,_id)
-            sdfs.splice(seq,0,lsib)
+            //插入sdfs, 找到nj
+            //直接在nj之前插入
+            let seq = get_sdfs_seq_via_id(sdfs,nj._id)
+            let sibseq = seq 
+            sdfs.splice(sibseq,0,lsib)
         }
     } else { 
         console.log('only root or uninited could be add')
@@ -1121,11 +1127,11 @@ function add_rsib(sdfs:Array<Njson>,nj:Njson,rsib?:NJ_OR_UNDEFINED):Njson {
             //
             nj._rsib = rsib._id
             rsib._lsib = nj._id
-            //插入sdfs,lsib在当前nj位置+1,当前nj不动
-            let _id = nj._id
-            let seq = get_sdfs_seq_via_id(sdfs,_id)
-            let rsib_seq = seq + 1
-            sdfs.splice(rsib_seq,0,rsib)
+            //插入sdfs, 找到nj的drmost 
+            let drmost:any = get_drmost_des(sdfs,nj)
+            let seq = get_sdfs_seq_via_id(sdfs,drmost._id)
+            let sibseq = seq + 1
+            sdfs.splice(sibseq,0,rsib)
         }
     } else { 
         console.log('only root or uninited could be add');
@@ -1161,11 +1167,17 @@ function prepend_child_tree(
     is_already_sdfs:boolean=true
 ):any {
     let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
-    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
-    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
     let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
     let child = chsdfs[0];
     child = prepend_child(sdfs,nj,child);
+    //
+    chsdfs = update_tree_via_connto_nj(chsdfs,nj);
+    chsdfs = update_depth_via_connto_nj(chsdfs,nj,1);
+    //把子树sdfs插入sdfs
+    let seq = get_sdfs_seq_via_id(sdfs,child._id)
+    let chseq = seq + 1
+    sdfs.splice(chseq,0,...chsdfs.slice(1,chsdfs.length))
+    //
     return([chsdfs,child])
 }
 
@@ -1177,11 +1189,17 @@ function append_child_tree(
     is_already_sdfs:boolean=true
 ):any {
     let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
-    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
-    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
     let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
     let child = chsdfs[0];
     child = append_child(sdfs,nj,child);
+    //
+    chsdfs = update_tree_via_connto_nj(chsdfs,nj);
+    chsdfs = update_depth_via_connto_nj(chsdfs,nj,1);
+    //把子树插入sdfs
+    let seq = get_sdfs_seq_via_id(sdfs,child._id)
+    let chseq = seq + 1
+    sdfs.splice(chseq,0,...chsdfs.slice(1,chsdfs.length))
+    //
     return([chsdfs,child])
 }
 
@@ -1193,11 +1211,16 @@ function add_rsib_tree(
     is_already_sdfs:boolean=true
 ):any {
     let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
-    rsib_njarr = update_tree_via_connto_nj(rsib_njarr,nj);
-    rsib_njarr = update_depth_via_connto_nj(rsib_njarr,nj,0);
     let rsibsdfs = is_already_sdfs?rsib_njarr:<Array<Njson>>get_sdfs(rsib_njarr);
     let rsib = rsibsdfs[0];
     rsib = add_rsib(sdfs,nj,rsib);
+    //
+    rsibsdfs = update_tree_via_connto_nj(rsibsdfs,nj);
+    rsibsdfs = update_depth_via_connto_nj(rsibsdfs,nj,0);
+    //把子树插入sdfs
+    let seq = get_sdfs_seq_via_id(sdfs,rsib._id)
+    let sibseq = seq + 1
+    sdfs.splice(sibseq,0,...rsibsdfs.slice(1,rsibsdfs.length))
     return([rsibsdfs,rsib])
 }
 
@@ -1209,11 +1232,16 @@ function add_lsib_tree(
     is_already_sdfs:boolean=true
 ):any {
     let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
-    lsib_njarr = update_tree_via_connto_nj(lsib_njarr,nj);
-    lsib_njarr = update_depth_via_connto_nj(lsib_njarr,nj,0);
     let lsibsdfs = is_already_sdfs?lsib_njarr:<Array<Njson>>get_sdfs(lsib_njarr);
     let lsib = lsibsdfs[0];
     lsib = add_lsib(sdfs,nj,lsib);
+    //
+    lsibsdfs = update_tree_via_connto_nj(lsibsdfs,nj);
+    lsibsdfs = update_depth_via_connto_nj(lsibsdfs,nj,0);
+    //把子树插入sdfs
+    let seq = get_sdfs_seq_via_id(sdfs,lsib._id)
+    let sibseq = seq + 1
+    sdfs.splice(sibseq,0,...lsibsdfs.slice(1,lsibsdfs.length))
     return([lsibsdfs,lsib])
 }
 
@@ -1226,11 +1254,18 @@ function insert_child_tree_via_index(
     is_already_sdfs:boolean=true
 ):any {
     let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
-    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
-    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
     let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
     let child = chsdfs[0]
     child = insert_child_via_index(sdfs,nj,which,child)
+    //
+
+    chsdfs = update_tree_via_connto_nj(chsdfs,nj);
+    chsdfs = update_depth_via_connto_nj(chsdfs,nj,1);
+    //把子树插入sdfs
+    let seq = get_sdfs_seq_via_id(sdfs,child._id)
+    let chseq = seq + 1
+    sdfs.splice(chseq,0,...chsdfs.slice(1,chsdfs.length))
+    //
     return([chsdfs,child])
 }
 
@@ -1242,11 +1277,17 @@ function insert_child_tree_before(
     is_already_sdfs:boolean=true
 ):any {
     let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
-    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
-    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
     let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
     let child = chsdfs[0]
     child = insert_child_before(sdfs,nj,child)
+    //
+    chsdfs = update_tree_via_connto_nj(chsdfs,nj);
+    chsdfs = update_depth_via_connto_nj(chsdfs,nj,1);
+    //把子树插入sdfs
+    let seq = get_sdfs_seq_via_id(sdfs,child._id)
+    let chseq = seq + 1
+    sdfs.splice(chseq,0,...chsdfs.slice(1,chsdfs.length))
+    //
     return([chsdfs,child])
 }
 
@@ -1259,11 +1300,17 @@ function insert_child_tree_after(
     is_already_sdfs:boolean=true
 ):any {
     let sdfs = is_already_sdfs?njarr:<Array<Njson>>get_sdfs(njarr);
-    ch_njarr = update_tree_via_connto_nj(ch_njarr,nj);
-    ch_njarr = update_depth_via_connto_nj(ch_njarr,nj,1);
     let chsdfs = is_already_sdfs?ch_njarr:<Array<Njson>>get_sdfs(ch_njarr);
     let child = chsdfs[0]
     child = insert_child_after(sdfs,nj,child)
+    //
+    chsdfs = update_tree_via_connto_nj(chsdfs,nj);
+    chsdfs = update_depth_via_connto_nj(chsdfs,nj,1);
+    //把子树插入sdfs
+    let seq = get_sdfs_seq_via_id(sdfs,child._id)
+    let chseq = seq + 1
+    sdfs.splice(chseq,0,...chsdfs.slice(1,chsdfs.length))
+    //
     return([chsdfs,child])
 }
 
@@ -1557,7 +1604,6 @@ function edfs2sedfs(
     edfs:Array<Njson>,
     deepcopy:boolean=false,
     clear:boolean=true
-
 ) {
     let sdfs = edfs2sdfs(njarr,edfs)
     return(sdfs2sedfs(njarr,sdfs,deepcopy,clear)) 
@@ -1586,7 +1632,21 @@ function sedfs2edfs(njarr:Array<Njson>,sedfs:Array<Njson>):any {
 
 
 //
-
+function get_nj_via_depth_and_breadth(njarr:Array<Njson>,depth:number,breadth:number):any {
+    let nj:any = null;
+    for(let each of njarr) {
+        let d0 = get_depth(njarr,each)
+        let b1 = get_breadth(njarr,each)
+        let cond0 = (depth === d0)
+        let cond1 = (breadth === b1)
+        let cond = (cond0 && cond1)
+        if(cond) {
+            return(each)
+        }
+    }
+    return(nj)
+}
+//
 
 export {
     Njson,
@@ -1707,6 +1767,8 @@ export {
     edfs2sedfs,
     sedfs2sdfs,
     sedfs2mat,
-    sedfs2edfs
+    sedfs2edfs,
+    //
+    get_nj_via_depth_and_breadth,
 }
 
